@@ -26,8 +26,10 @@ class Planet(db.Model, SerializerMixin):
     nearest_star = db.Column(db.String)
 
     # Add relationship
+    missions = db.relationship('Mission', backref='planet')
 
     # Add serialization rules
+    serialize_rules = ('-missions',)
 
 
 class Scientist(db.Model, SerializerMixin):
@@ -38,10 +40,23 @@ class Scientist(db.Model, SerializerMixin):
     field_of_study = db.Column(db.String)
 
     # Add relationship
+    missions = db.relationship('Mission', backref='scientist', cascade='all, delete-orphan')
 
     # Add serialization rules
+    serialize_rules = ('-missions.scientist',)
 
     # Add validation
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value or value == '':
+            raise ValueError('Scientist name cannot be empty')
+        return value
+
+    @validates('field_of_study')
+    def validate_field_of_study(self, key, value):
+        if not value or value == '':
+            raise ValueError('Scientist field_of_study cannot be empty')
+        return value
 
 
 class Mission(db.Model, SerializerMixin):
@@ -49,12 +64,30 @@ class Mission(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
-
-    # Add relationships
+    scientist_id = db.Column(db.Integer, db.ForeignKey('scientists.id'))
+    planet_id = db.Column(db.Integer, db.ForeignKey('planets.id'))
 
     # Add serialization rules
+    serialize_rules = ('-scientist.missions', '-planet.missions')
 
     # Add validation
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value or value == '':
+            raise ValueError('Mission name cannot be empty')
+        return value
+
+    @validates('scientist_id')
+    def validate_scientist_id(self, key, value):
+        if not value:
+            raise ValueError('Mission scientist_id cannot be empty')
+        return value
+
+    @validates('planet_id')
+    def validate_planet_id(self, key, value):
+        if not value:
+            raise ValueError('Mission planet_id cannot be empty')
+        return value
 
 
 # add any models you may need.
